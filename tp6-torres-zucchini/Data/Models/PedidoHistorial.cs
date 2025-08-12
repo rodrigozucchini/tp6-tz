@@ -14,6 +14,10 @@ namespace tp6_torres_zucchini.Data.Models
         [ForeignKey("Cliente")]
         public int ClienteId { get; set; }
 
+        [Required]
+        [MaxLength(50)]
+        public string Estado { get; set; }
+
         public DateTime FechaHora { get; set; } = DateTime.UtcNow;
     }
 }

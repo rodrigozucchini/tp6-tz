@@ -8,6 +8,8 @@ namespace tp6_torres_zucchini.Data.Models
         [Key]
         public int Id { get; set; }
 
+        [Required]
+        [MaxLength(50)]
         public string Estado { get; set; } = "PENDIENTE";
 
         [ForeignKey("Cliente")]
