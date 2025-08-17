@@ -5,124 +5,71 @@
 }
 <div class="text-center">
     <h1 class="display-3"><a href="/Admin/Index" class="text-dark text-decoration-none"> Panel de Administracion</a></h1>
-    <p class ="fs-5">
-        En esta sección podras dar de alta, modificar o dar de baja a clientes. </p>
+    <p class="fs-5">
+        En esta sección podras dar de alta, modificar o dar de baja a clientes.
+    </p>
 </div>
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow-sm p-4">
-                <!-- Primera fila: Botones de acción -->
-                <div class="mb-3 d-flex justify-content-center gap-3">
-                    <button class="btn btn-primary" onclick="accionAlta()">Alta Clt</button>
-                    <button class="btn btn-primary" onclick="accionBuscar()">Buscar</button>
-                    <button id="btnModificar" class="btn btn-primary d-none" onclick="accionModificar()">Modificar </button>
-                </div>
 
-                <!-- Campo ID -->
-                <div class="mb-3">
-                    <label for="inputId" class="form-label">ID Cliente</label>
-                    <input type="text" class="form-control" id="inputId" placeholder="ID Cliente" readonly/>
-                </div>
+<form method="post">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow-sm p-4">
+                    <!-- Primera fila: Botones de acción -->
+                    <div class="mb-3 d-flex justify-content-center gap-3">
+                        <button type="submit" asp-page-handler="Alta" class="btn btn-primary">Alta Clt</button>
+                        <button type="submit" asp-page-handler="Buscar" class="btn btn-primary">Buscar</button>
+                        <button type="submit" asp-page-handler="Modificar"
+                                class="btn btn-primary @(Model.MostrarBotonModificar ? "" : "d-none")">
+                            Modificar
+                        </button>
+                    </div>
 
-                <!-- Campo Nombre -->
-                <div class="mb-3">
-                    <label for="inputNombre" class="form-label">Nombre</label>
-                    <input type="text" class="form-control" id="inputNombre" placeholder="Cliente" readonly/>
-                </div>
+                    <!-- Campo ID -->
+                    <div class="mb-3">
+                        <label asp-for="ClienteActual.Id" class="form-label">ID Cliente</label>
+                        <input asp-for="ClienteActual.Id" class="form-control" placeholder="ID Cliente"
+                               readonly="@(Model.InputID ? null : "readonly")" />
+                    </div>
 
-                <!-- Campo Email -->
-                <div class="mb-3">
-                    <label for="inputEmail" class="form-label">Email</label>
-                    <input type="text" class="form-control" id="inputEmail" placeholder="Email Cliente" readonly />
-                </div>
+                    <!-- Campo Nombre -->
+                    <div class="mb-3">
+                        <label asp-for="ClienteActual.Nombre" class="form-label">Nombre</label>
+                        <input asp-for="ClienteActual.Nombre" class="form-control" placeholder="Cliente"
+                               readonly="@(Model.InputsEditables ? null : "readonly")" />
+                        <span asp-validation-for="ClienteActual.Nombre" class="text-danger"></span>
+                    </div>
 
-                <!-- Segunda fila: Botones de guardar -->
-                <div class="d-flex justify-content-center gap-3" >
-                    <button class="btn btn-success d-none" onclick="accionGuardar()"id="btnGuardar">Guardar</button>
-                    <button class="btn btn-warning d-none" onclick="accionCancelar()" id="btnCancelar">Cancelar</button>
-                    <button class="btn btn-secondary d-none" onclick="accionLimpiar()" id="btnLimpiar">Limpiar</button>
-                    <button class="btn btn-danger d-none" onclick="accionEliminar()" id="btnEliminar">Eliminar</button>
+                    <!-- Campo Email -->
+                    <div class="mb-3">
+                        <label asp-for="ClienteActual.Email" class="form-label">Email</label>
+                        <input asp-for="ClienteActual.Email" class="form-control" placeholder="Email Cliente"
+                               readonly="@(Model.InputsEditables ? null : "readonly")" />
+                        <span asp-validation-for="ClienteActual.Email" class="text-danger"></span>
+                    </div>
+
+                    <!-- Segunda fila: Botones de guardar -->
+                    <div class="d-flex justify-content-center gap-3">
+                        <button type="submit" asp-page-handler="Guardar"
+                                class="btn btn-success @(Model.MostrarBotonGuardar ? "" : "d-none")">
+                            Guardar
+                        </button>
+                        <button type="submit" asp-page-handler="Cancelar"
+                                class="btn btn-warning @(Model.MostrarBotonCancelar ? "" : "d-none")">
+                            Cancelar
+                        </button>
+                        <button type="submit" asp-page-handler="Limpiar"
+                                class="btn btn-secondary @(Model.MostrarBotonLimpiar ? "" : "d-none")">
+                            Limpiar
+                        </button>
+                        <button type="submit" asp-page-handler="Eliminar"
+                                class="btn btn-danger @(Model.MostrarBotonEliminar ? "" : "d-none")">
+                            Eliminar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</form>
 
-<!-- JavaScript de control -->
-<script>
-    // Elementos
-    const inputId = document.getElementById('inputId');
-    const inputNombre = document.getElementById('inputNombre');
-    const inputEmail = document.getElementById('inputEmail');
-    const btnEliminar = document.getElementById('btnEliminar');
-    const btnModificar = document.getElementById('btnModificar');
-    const btnLimpiar = document.getElementById('btnLimpiar');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const btnGuardar = document.getElementById('btnGuardar');
-
-    // Función que pone todo en estado inicial
-    function estadoInicial() {
-        inputId.removeAttribute('readonly');
-        inputNombre.setAttribute('readonly', true);
-        inputEmail.setAttribute('readonly', true);
-        inputId.value = '';
-        inputNombre.value = '';
-        inputEmail.value = '';
-        btnEliminar.classList.add("d-none");
-        btnModificar.classList.add("d-none");
-        btnLimpiar.classList.remove("d-none");
-        btnCancelar.classList.add("d-none");
-        btnGuardar.classList.remove("d-none");
-    }
-
-    function accionAlta() {
-        inputId.setAttribute('readonly', true);
-        inputNombre.removeAttribute('readonly');
-        inputEmail.removeAttribute('readonly');
-        inputNombre.value = '';
-        inputEmail.value = '';
-
-    }
-
-    function accionBuscar() {
-        inputId.removeAttribute('readonly');
-        btnEliminar.classList.remove("d-none");
-        btnModificar.classList.remove("d-none");
-        btnLimpiar.classList.remove("d-none");
-        btnCancelar.classList.add("d-none");
-        btnGuardar.classList.add("d-none");
-
-    }
-
-    function accionModificar(){
-        inputId.setAttribute('readonly', true);
-        inputNombre.removeAttribute('readonly');
-        inputEmail.removeAttribute('readonly');
-        btnEliminar.classList.add("d-none");
-        btnLimpiar.classList.add("d-none");
-        btnCancelar.classList.remove("d-none");
-        btnGuardar.classList.remove("d-none");
-
-    }
-    function accionCancelar(){
-        estadoInicial();
-    }
-
-    function accionGuardar() {
-        alert('Guardado (lógica no implementada)');
-        estadoInicial();
-    }
-
-    function accionLimpiar() {
-        estadoInicial();
-    }
-
-    function accionEliminar() {
-        alert('Eliminado (lógica no implementada)');
-        estadoInicial();
-    }
-
-    // Iniciar en estado inicial
-    estadoInicial();
-</script>
