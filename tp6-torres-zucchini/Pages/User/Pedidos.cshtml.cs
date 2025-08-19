@@ -20,29 +20,59 @@ namespace tp6_torres_zucchini.Pages.User
         [BindProperty]
         public int idCliente { get; set; }
 
+        [BindProperty]
+        public int ConexionId { get; set; }
+
+        [BindProperty]
+        public int PedidoId { get; set; }
+
+        [BindProperty]
+        public string NuevoEstado { get; set; }
+
+        public string EstadoPedido { get; set; }
+        public string ErrorEstadoPedido { get; set; }
+
+        [TempData]
+        public string MensajePedido { get; set; }
+
+        [TempData]
+        public string MensajeCambioEstado { get; set; }
+
+        // Método privado para cargar datos de sesión
+        private void CargarSesion()
+        {
+            idCliente = HttpContext.Session.GetInt32("ClienteId") ?? 0;
+
+            var conexionIdStr = HttpContext.Session.GetString("ConexionId");
+            ConexionId = int.TryParse(conexionIdStr, out int conexionId) ? conexionId : 0;
+        }
+
+        public void OnGet()
+        {
+            CargarSesion();
+        }
+
         public async Task<IActionResult> OnPostDesconectarAsync()
         {
-            var conexionId = HttpContext.Session.GetString("ConexionId");
-            if (!string.IsNullOrEmpty(conexionId))
+            CargarSesion();
+
+            if (ConexionId > 0)
             {
-                await _conexionService.DesconectarAsync(int.Parse(conexionId));
-                // Limpiar sesión
+                await _conexionService.DesconectarAsync(ConexionId);
                 HttpContext.Session.Remove("ClienteId");
                 HttpContext.Session.Remove("ConexionId");
 
                 return RedirectToPage("/User/Index");
             }
+
             return BadRequest("No se pudo desconectar.");
         }
 
-
-        [TempData]
-        public string MensajePedido { get; set; }
-
         public async Task<IActionResult> OnPostGenerarPedidoAsync()
         {
-            var conexionIdStr = HttpContext.Session.GetString("ConexionId");
-            if (string.IsNullOrEmpty(conexionIdStr) || !int.TryParse(conexionIdStr, out int conexionId))
+            CargarSesion();
+
+            if (ConexionId <= 0)
             {
                 MensajePedido = "Conexión inválida.";
                 return Page();
@@ -50,7 +80,7 @@ namespace tp6_torres_zucchini.Pages.User
 
             try
             {
-                int nuevoPedidoId = await _conexionService.GenerarPedidoAsync(conexionId);
+                int nuevoPedidoId = await _conexionService.GenerarPedidoAsync(ConexionId);
                 MensajePedido = $"Pedido generado con ID: {nuevoPedidoId}";
             }
             catch (Exception ex)
@@ -61,23 +91,16 @@ namespace tp6_torres_zucchini.Pages.User
             return Page();
         }
 
-        [BindProperty]
-        public int ConexionId { get; set; }
-
-        [BindProperty]
-        public int PedidoId { get; set; }
-
-        public string EstadoPedido { get; set; }
-        public string ErrorEstadoPedido { get; set; }
-
         public async Task<IActionResult> OnPostConsultarEstadoPedidoAsync()
         {
-            // Validar inputs (puedes agregar más validaciones)
+            CargarSesion();
+
             if (ConexionId <= 0)
             {
                 ErrorEstadoPedido = "El ID de conexión no es válido.";
                 return Page();
             }
+
             if (PedidoId <= 0)
             {
                 ErrorEstadoPedido = "El número de pedido no es válido.";
@@ -96,14 +119,10 @@ namespace tp6_torres_zucchini.Pages.User
             return Page();
         }
 
-        [BindProperty]
-        public string NuevoEstado { get; set; }
-
-        [TempData]
-        public string MensajeCambioEstado { get; set; }
-
         public async Task<IActionResult> OnPostCambiarEstadoPedidoAsync()
         {
+            CargarSesion();
+
             if (ConexionId <= 0 || PedidoId <= 0 || string.IsNullOrWhiteSpace(NuevoEstado))
             {
                 MensajeCambioEstado = "Datos inválidos.";

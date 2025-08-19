@@ -20,11 +20,7 @@
         {
             <form method="post" asp-page-handler="Ingresar">
                 <div class="form-group mt-3">
-                    <input asp-for="Nombre" class="form-control" placeholder="Tu nombre..." required />
-                </div>
-
-                <div class="form-group mt-3">
-                    <input asp-for="Email" class="form-control" placeholder="Tu email..." required />
+                    <input asp-for="IdCliente" class="form-control" placeholder="IdCliente" required />
                 </div>
 
                 @if (!string.IsNullOrEmpty(Model.ErrorMessage))

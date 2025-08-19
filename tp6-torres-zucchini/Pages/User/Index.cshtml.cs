@@ -18,10 +18,7 @@ namespace tp6_torres_zucchini.Pages.User
         }
 
         [BindProperty]
-        public string Email { get; set; } = string.Empty;
-
-        [BindProperty]
-        public string Nombre { get; set; } = string.Empty;
+        public int IdCliente { get; set; }
 
         public string ErrorMessage { get; set; } = string.Empty;
         public bool ShowForm { get; set; }
@@ -42,17 +39,10 @@ namespace tp6_torres_zucchini.Pages.User
         {
             ShowForm = true;
 
-            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Nombre))
-            {
-                ErrorMessage = "Por favor complete todos los campos.";
-                Response.StatusCode = 400;
-                return Page();
-            }
-
             try
             {
                 var cliente = await _context.Clientes
-                    .FirstOrDefaultAsync(c => c.Email.ToLower() == Email.ToLower() && c.Nombre.ToLower() == Nombre.ToLower());
+                    .FirstOrDefaultAsync(c => c.Id == IdCliente);
 
                 if (cliente == null)
                 {
