@@ -7,102 +7,133 @@ namespace tp6_torres_zucchini.Data
     public class ConexionService : IConexionService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogService _logService;
 
-        public ConexionService(ApplicationDbContext context)
+        public ConexionService(ApplicationDbContext context, ILogService logService)
         {
             _context = context;
+            _logService = logService;
         }
 
         public async Task<string> ConectarAsync(int clienteId)
         {
-            // Desactivar conexiones activas con más de 5 minutos
-            var limiteTiempo = DateTime.UtcNow.AddMinutes(-5);
+            var comando = "Conectar";
+            string respuesta;
 
-            var conexionesExpiradas = await _context.Conexiones
-                .Where(c => c.Activa && c.FechaHora <= limiteTiempo)
-                .ToListAsync();
-
-            if (conexionesExpiradas.Any())
+            try
             {
-                foreach (var c in conexionesExpiradas)
+                var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == clienteId);
+                if (!clienteExiste)
                 {
-                    c.Activa = false;
+                    respuesta = "ERROR Cliente no encontrado";
+                    await _logService.RegistrarPeticionAsync(comando, clienteId, respuesta);
+                    return respuesta;
                 }
+
+                var conexionActivaExistente = await _context.Conexiones
+                    .AnyAsync(c => c.ClienteId == clienteId && c.Activa);
+
+                if (conexionActivaExistente)
+                {
+                    respuesta = "ERROR Ya existe una conexión activa para este cliente";
+                    await _logService.RegistrarPeticionAsync(comando, clienteId, respuesta);
+                    return respuesta;
+                }
+
+                var nuevaConexion = new Conexion
+                {
+                    ClienteId = clienteId,
+                    FechaHora = DateTime.UtcNow,
+                    Activa = true
+                };
+
+                _context.Conexiones.Add(nuevaConexion);
                 await _context.SaveChangesAsync();
+
+                respuesta = nuevaConexion.Id.ToString();
+                await _logService.RegistrarPeticionAsync(comando, clienteId,
+                    $"Conexión creada correctamente con Id {nuevaConexion.Id} para el cliente {clienteId}");
+
+                return respuesta;
             }
-
-            // Luego seguís con el resto de tu lógica, por ejemplo:
-            var clienteExiste = await _context.Clientes.AnyAsync(c => c.Id == clienteId);
-            if (!clienteExiste)
-                return "ERROR Cliente no encontrado";
-
-            var conexionActivaExistente = await _context.Conexiones
-                .AnyAsync(c => c.ClienteId == clienteId && c.Activa);
-
-            if (conexionActivaExistente)
-                return "ERROR Ya existe una conexión activa para este cliente";
-
-            var nuevaConexion = new Conexion
+            catch (Exception ex)
             {
-                ClienteId = clienteId,
-                FechaHora = DateTime.UtcNow,
-                Activa = true
-            };
-
-            _context.Conexiones.Add(nuevaConexion);
-            await _context.SaveChangesAsync();
-
-            return nuevaConexion.Id.ToString();
+                respuesta = $"ERROR {ex.Message}";
+                await _logService.RegistrarPeticionAsync(comando, clienteId, respuesta);
+                return respuesta;
+            }
         }
 
         public async Task<string> DesconectarAsync(int conexionId)
         {
+            var comando = "Desconectar";
+            string respuesta;
+
             var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId);
 
             if (conexion == null)
             {
-                return "ERROR (Conexión no encontrada)";
+                respuesta = "ERROR (Conexión no encontrada)";
+            }
+            else if (!conexion.Activa) // ya está inactiva
+            {
+                respuesta = $"ERROR (La conexión {conexionId} ya está desconectada)";
+            }
+            else
+            {
+                conexion.Activa = false;
+                await _context.SaveChangesAsync();
+                respuesta = $"Conexión {conexionId} desconectada correctamente";
             }
 
-            conexion.Activa = false;
-            await _context.SaveChangesAsync();
-
-            return "OK";
+            await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+            return respuesta;
         }
 
         public async Task<string> ObtenerEstadoServidorAsync(int conexionId)
         {
+            var comando = "EstadoServidor";
+            string respuesta;
+
             var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId);
+            respuesta = conexion != null && conexion.Activa ? "ACTIVO" : "INACTIVO";
 
-            //if (conexion == null)
-            //{
-            //    return "INACTIVO";
-            //}
-
-            //return conexion.Activa ? "ACTIVO" : "INACTIVO";
-            return "ACTIVO";
+            await _logService.RegistrarPeticionAsync(comando, conexionId,
+                $"Estado del servidor para la conexión {conexionId}: {respuesta}");
+            return respuesta;
         }
 
         public async Task<string> ObtenerFechaServidorAsync(int conexionId)
         {
+            var comando = "FechaServidor";
+            string respuesta;
+
             var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId);
 
             if (conexion == null)
             {
-                return "INACTIVO";
+                respuesta = "INACTIVO";
+            }
+            else
+            {
+                respuesta = DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss");
             }
 
-            return DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss");
+            await _logService.RegistrarPeticionAsync(comando, conexionId,
+                $"Fecha del servidor para la conexión {conexionId}: {respuesta}");
+            return respuesta;
         }
 
         public async Task<int> GenerarPedidoAsync(int conexionId)
         {
-            var conexion = await _context.Conexiones
-                    .FirstOrDefaultAsync(c => c.Id == conexionId);
+            var comando = "GenerarPedido";
 
+            var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId);
             if (conexion == null)
             {
-                throw new Exception("Conexión no encontrada");
+                var error = "ERROR (Conexión no encontrada)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, error);
+                throw new Exception(error);
             }
 
             var nuevoPedido = new Pedido
@@ -115,7 +146,6 @@ namespace tp6_torres_zucchini.Data
             _context.Pedidos.Add(nuevoPedido);
             await _context.SaveChangesAsync();
 
-            // Guardar historial
             var historial = new PedidoHistorial
             {
                 PedidoId = nuevoPedido.Id,
@@ -126,66 +156,77 @@ namespace tp6_torres_zucchini.Data
             _context.PedidoHistoriales.Add(historial);
             await _context.SaveChangesAsync();
 
+            await _logService.RegistrarPeticionAsync(comando, conexionId,
+                $"Pedido {nuevoPedido.Id} generado para el cliente {conexion.ClienteId}");
             return nuevoPedido.Id;
         }
 
         public async Task<string> ConsultarEstadoPedidoAsync(int conexionId, int pedidoId)
         {
-            // Buscar la conexión
+            var comando = "ConsultarEstado";
+            string respuesta;
+
             var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId);
-
             if (conexion == null)
-                throw new Exception("Conexión no encontrada");
+            {
+                respuesta = "ERROR (Conexión no encontrada)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+                throw new Exception(respuesta);
+            }
 
-            // Buscar el pedido que pertenezca al cliente de esta conexión y con ese pedidoId
             var pedido = await _context.Pedidos
                 .FirstOrDefaultAsync(p => p.Id == pedidoId && p.ClienteId == conexion.ClienteId);
 
             if (pedido == null)
-                throw new Exception("Pedido no encontrado");
+            {
+                respuesta = "ERROR (Pedido no encontrado)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+                throw new Exception(respuesta);
+            }
 
-            // Retornar el estado actual
-            return pedido.Estado;
+            respuesta = pedido.Estado;
+            await _logService.RegistrarPeticionAsync(comando, conexionId,
+                $"Estado del pedido {pedidoId} para la conexión {conexionId}: {respuesta}");
+            return respuesta;
         }
 
         public async Task<string> CambiarEstadoPedidoAsync(int conexionId, int pedidoId, string nuevoEstado)
         {
-            // Estados válidos
+            var comando = "CambiarEstado";
+            string respuesta;
+
             var estadosValidos = new[] { "PENDIENTE", "DESPACHADO", "ENTREGADO", "CERRADO", "ANULADO" };
 
-            // Validar estado
             if (!estadosValidos.Contains(nuevoEstado.ToUpper()))
             {
-                return $"ERROR (Estado: {nuevoEstado} no contemplado por el servidor)";
+                respuesta = $"ERROR (Estado: {nuevoEstado} no contemplado por el servidor)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+                return respuesta;
             }
 
-            // Buscar la conexión
-            var conexion = await _context.Pedidos
-                .FirstOrDefaultAsync(c => c.ConexionId == conexionId);
-
+            var conexion = await _context.Conexiones.FirstOrDefaultAsync(c => c.Id == conexionId && c.Activa);
             if (conexion == null)
             {
-                return "ERROR (Conexión no encontrada o inactiva)";
+                respuesta = "ERROR (Conexión no encontrada o inactiva)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+                return respuesta;
             }
 
-            // Buscar el pedido
-            var pedido = await _context.Pedidos
-                .FirstOrDefaultAsync(p => p.Id == pedidoId);
-
+            var pedido = await _context.Pedidos.FirstOrDefaultAsync(p => p.Id == pedidoId && p.ClienteId == conexion.ClienteId);
             if (pedido == null)
             {
-                return "ERROR (Pedido no encontrado)";
+                respuesta = "ERROR (Pedido no encontrado)";
+                await _logService.RegistrarPeticionAsync(comando, conexionId, respuesta);
+                return respuesta;
             }
 
-            // Cambiar estado del pedido
             pedido.Estado = nuevoEstado.ToUpper();
             _context.Pedidos.Update(pedido);
 
-            // Guardar en historial
             var historial = new PedidoHistorial
             {
                 PedidoId = pedido.Id,
-                ClienteId = conexion.ClienteId, // quien lo modifica
+                ClienteId = conexion.ClienteId,
                 Estado = nuevoEstado.ToUpper(),
                 FechaHora = DateTime.UtcNow
             };
@@ -194,7 +235,10 @@ namespace tp6_torres_zucchini.Data
 
             await _context.SaveChangesAsync();
 
-            return "OK";
+            respuesta = "OK";
+            await _logService.RegistrarPeticionAsync(comando, conexionId,
+                $"Pedido {pedidoId} para el cliente {conexion.ClienteId} cambiado a estado {nuevoEstado.ToUpper()}");
+            return respuesta;
         }
     }
 }

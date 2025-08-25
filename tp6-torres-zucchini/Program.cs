@@ -4,42 +4,51 @@ using tp6_torres_zucchini.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ------------------ Servicios ------------------
+
+// Razor Pages (para tus páginas Admin y Home)
 builder.Services.AddRazorPages();
 
-builder.Services.AddDistributedMemoryCache();
+// Controllers para la API
+builder.Services.AddControllers();
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+// Swagger (documentación automática)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
+// DbContext con SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Inyección de dependencias de tus servicios
 builder.Services.AddScoped<IConexionService, ConexionService>();
+builder.Services.AddScoped<ILogService, LogService>();
+
+// BackgroundService para limpieza automática
+builder.Services.AddHostedService<LimpiezaConexionesService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// ------------------ Middleware ------------------
+
+// Swagger
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();
-
 app.UseAuthorization();
 
-app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+// Mapear API
+app.MapControllers();
+
+// Mapear Razor Pages
+app.MapRazorPages();
 
 app.Run();

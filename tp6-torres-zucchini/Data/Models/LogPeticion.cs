@@ -9,17 +9,17 @@ namespace tp6_torres_zucchini.Data.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(50)]
+        [MaxLength(100)] // aumenté un poco para más flexibilidad
         public string Comando { get; set; }
 
         [ForeignKey("Conexion")]
-        public int ConexionId { get; set; }
+        public int? ConexionId { get; set; } // nullable por "si corresponde"
 
         [Required]
-        [MaxLength(50)]
+        [MaxLength(500)] // o quitar el MaxLength y dejarlo ilimitado
         public string RespuestaComando { get; set; }
 
-        public DateTime FechaHora { get; set; } = DateTime.UtcNow;
-
+        [Required]
+        public DateTime FechaHora { get; set; } = DateTime.Now;
     }
 }
