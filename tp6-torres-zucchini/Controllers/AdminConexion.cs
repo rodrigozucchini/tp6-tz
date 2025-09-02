@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using tp6_torres_zucchini.Data;
-using tp6_torres_zucchini.Data.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using tp6_torres_zucchini.Service;
 
 namespace tp6_torres_zucchini.Controllers
 {
@@ -15,95 +8,45 @@ namespace tp6_torres_zucchini.Controllers
     [ApiExplorerSettings(GroupName = "PanelAdmin")]
     public class AdminConexion : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IMonitorService _monitorService;
+        private readonly ILogger<AdminConexion> _logger;
 
-        public AdminConexion(ApplicationDbContext context)
+        public AdminConexion(IMonitorService monitorService, ILogger<AdminConexion> logger)
         {
-            _context = context;
+            _monitorService = monitorService;
+            _logger = logger;
         }
 
-        // GET: api/AdminConexion
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Conexion>>> GetConexiones()
+        [HttpGet("ConexionesActivas")]
+        public async Task<IActionResult> GetConexiones()
         {
-            return await _context.Conexiones.ToListAsync();
-        }
+            var conexiones = await _monitorService.ObtenerConexionesActivasAsync();
 
-        // GET: api/AdminConexion/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Conexion>> GetConexion(int id)
-        {
-            var conexion = await _context.Conexiones.FindAsync(id);
-
-            if (conexion == null)
+            // Log en terminal usando ILogger (para las peticiones HTTP)
+            _logger.LogInformation("HTTP REQUEST: Se registraron {Count} conexiones activas", conexiones.Count);
+            foreach (var conexion in conexiones)
             {
-                return NotFound();
+                _logger.LogInformation("HTTP REQUEST Conexion: ClienteId={ClienteId}, FechaHora={FechaHora}",
+                    conexion.ClienteId, conexion.FechaHora);
             }
 
-            return conexion;
+            return Ok(conexiones);
         }
 
-        // PUT: api/AdminConexion/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutConexion(int id, Conexion conexion)
+        [HttpGet("Comandos")]
+        public async Task<IActionResult> UltimosComandos()
         {
-            if (id != conexion.Id)
+            var comandos = await _monitorService.ObtenerUltimosComandosAsync();
+
+            // Log en la terminal (para las peticiones HTTP)
+            _logger.LogInformation("HTTP REQUEST: Se ejecutaron {Count} comandos", comandos.Count);
+            foreach (var comando in comandos)
             {
-                return BadRequest();
+                _logger.LogInformation("HTTP REQUEST Log: Comando={Comando}, ConexionId={ConexionId}, RespuestaComando={RespuestaComando}, FechaHora={FechaHora}",
+                   comando.Comando, comando.ConexionId, comando.RespuestaComando, comando.FechaHora);
             }
 
-            _context.Entry(conexion).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ConexionExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/AdminConexion
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Conexion>> PostConexion(Conexion conexion)
-        {
-            _context.Conexiones.Add(conexion);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetConexion", new { id = conexion.Id }, conexion);
-        }
-
-        // DELETE: api/AdminConexion/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteConexion(int id)
-        {
-            var conexion = await _context.Conexiones.FindAsync(id);
-            if (conexion == null)
-            {
-                return NotFound();
-            }
-
-            _context.Conexiones.Remove(conexion);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ConexionExists(int id)
-        {
-            return _context.Conexiones.Any(e => e.Id == id);
+            return Ok(comandos);
         }
     }
 }
