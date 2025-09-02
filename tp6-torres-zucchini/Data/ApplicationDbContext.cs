@@ -13,7 +13,6 @@ namespace tp6_torres_zucchini.Data
         public DbSet<Pedido> Pedidos { get; set; }
         public DbSet<PedidoHistorial> PedidoHistoriales { get; set; }
         public DbSet<Conexion> Conexiones { get; set; }
-        public DbSet<LogPeticion> LgoPeticiones { get; set; }
 
         public DbSet<LogPeticion> LogPeticiones { get; set; }
     }
