@@ -36,7 +36,7 @@ namespace tp6_torres_zucchini.Service
         // Método que devuelve datos (para el controlador)
         public async Task<List<LogPeticion>> ObtenerUltimosComandosAsync()
         {
-            return await _context.LogPeticiones
+            return await _context.LogPeticion
                 .OrderByDescending(c => c.FechaHora)
                 .Take(10)
                 .ToListAsync();

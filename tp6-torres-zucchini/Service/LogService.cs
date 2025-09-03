@@ -22,7 +22,7 @@ namespace tp6_torres_zucchini.Service
                 FechaHora = DateTime.UtcNow
             };
 
-            _context.LogPeticiones.Add(log);
+            _context.LogPeticion.Add(log);
             await _context.SaveChangesAsync();
         }
     }
