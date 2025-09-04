@@ -48,38 +48,41 @@ namespace tp6_torres_zucchini.Service
             try
             {
                 var conexiones = await ObtenerConexionesActivasAsync();
-
-                _logger.LogInformation("🔄 AUTO-EJECUTADO: Se registraron {Count} conexiones activas", conexiones.Count);
+                _logger.LogInformation("═══════════════════════════════════════");
+                _logger.LogInformation("ConexionesActivas: Se registraron {Count} conexiones activas", conexiones.Count);
                 foreach (var conexion in conexiones)
                 {
-                    _logger.LogInformation("🔄 AUTO-EJECUTADO Conexion: ClienteId={ClienteId}, FechaHora={FechaHora}",
+                    _logger.LogInformation("Conexion: ClienteId={ClienteId}, FechaHora={FechaHora}",
                         conexion.ClienteId, conexion.FechaHora);
                 }
+                _logger.LogInformation("═══════════════════════════════════════");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error en LogConexionesActivasAsync");
             }
         }
-
         // Método que solo hace logging (para el filtro)
         public async Task LogUltimosComandosAsync()
         {
             try
             {
                 var comandos = await ObtenerUltimosComandosAsync();
+                _logger.LogInformation("═══════════════════════════════════════");
+                _logger.LogInformation("Comandos Ejecutados: Se ejecutaron {Count} comandos", comandos.Count);
 
-                _logger.LogInformation("🔄 AUTO-EJECUTADO: Se ejecutaron {Count} comandos", comandos.Count);
+                int contador = 1;
                 foreach (var comando in comandos)
                 {
                     // Truncar para evitar el error de base de datos
                     var respuestaCorta = comando.RespuestaComando?.Length > 100
                         ? comando.RespuestaComando.Substring(0, 100) + "..."
                         : comando.RespuestaComando;
-
-                    _logger.LogInformation("🔄 AUTO-EJECUTADO Log: Comando={Comando}, ConexionId={ConexionId}, RespuestaComando={RespuestaComando}, FechaHora={FechaHora}",
-                        comando.Comando, comando.ConexionId, respuestaCorta, comando.FechaHora);
+                    _logger.LogInformation("Comando Nro {Contador}: Comando={Comando}, ConexionId={ConexionId}, RespuestaComando={RespuestaComando}, FechaHora={FechaHora}",
+                        contador, comando.Comando, comando.ConexionId, respuestaCorta, comando.FechaHora);
+                    contador++;
                 }
+                _logger.LogInformation("═══════════════════════════════════════");
             }
             catch (Exception ex)
             {

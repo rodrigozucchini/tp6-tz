@@ -105,34 +105,5 @@ namespace tp6_torres_zucchini.Controllers
         {
             return _context.Clientes.Any(e => e.Id == id);
         }
-
-        [HttpGet("DescargarLogs")]
-        public async Task<IActionResult> DescargarLogs([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFin)
-        {
-            // Traer los logs entre las fechas
-            var logs = await _context.Set<LogPeticion>()
-                .Where(l => l.FechaHora >= fechaInicio && l.FechaHora <= fechaFin)
-                .OrderBy(l => l.FechaHora)
-                .ToListAsync();
-
-            if (logs.Count == 0)
-                return NotFound("No hay logs en el rango de fechas especificado.");
-
-            // Generar el contenido del archivo
-            var contenido = new System.Text.StringBuilder();
-            foreach (var log in logs)
-            {
-                contenido.AppendLine($"ID: {log.Id}");
-                contenido.AppendLine($"FechaHora: {log.FechaHora}");
-                contenido.AppendLine($"Comando: {log.Comando}");
-                contenido.AppendLine($"Respuesta: {log.RespuestaComando}");
-                contenido.AppendLine(new string('-', 50));
-            }
-
-            var bytes = System.Text.Encoding.UTF8.GetBytes(contenido.ToString());
-            var nombreArchivo = $"Logs_{fechaInicio:yyyyMMdd}_{fechaFin:yyyyMMdd}.txt";
-
-            return File(bytes, "text/plain", nombreArchivo);
-        }
     }
 }
